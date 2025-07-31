@@ -1,26 +1,21 @@
-FROM node:18-bullseye
+FROM node:18-alpine
 
-# Atualiza os repositórios, instala python3, pip, ffmpeg e dependências necessárias
-RUN apt-get update && apt-get install -y \
+# Instalar dependências de sistema para yt-dlp (como ffmpeg e python)
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
+    py3-pip \
     ffmpeg \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    bash \
+  && pip3 install --no-cache-dir yt-dlp
 
-# Instala yt-dlp via pip
-RUN pip3 install --no-cache-dir yt-dlp
-
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+
+RUN npm install --production
 
 COPY . .
 
-RUN mkdir downloads uploads
-
-ENV PORT=3000
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
