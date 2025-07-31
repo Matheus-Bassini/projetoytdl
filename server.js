@@ -27,7 +27,7 @@ app.get('/', (req, res) => {
 });
 
 // Rota para download via yt-dlp
-app.post('/api/download', async (req, res) => {
+app.post('/public_html/api/download', async (req, res) => {
   const { url, format } = req.body;
 
   if (!url || !format) {
