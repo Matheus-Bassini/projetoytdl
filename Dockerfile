@@ -1,12 +1,13 @@
-FROM node:18-alpine
+FROM node:18-bullseye
 
-# Instalar dependências de sistema para yt-dlp (como ffmpeg e python)
-RUN apk add --no-cache \
+# Instalar dependências do sistema para yt-dlp e ffmpeg
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
+    python3-pip \
     ffmpeg \
-    bash \
-  && pip3 install --no-cache-dir yt-dlp
+    && pip3 install --no-cache-dir yt-dlp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
