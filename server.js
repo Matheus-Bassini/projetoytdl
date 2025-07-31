@@ -1,62 +1,50 @@
-const express = require("express");
-const cors = require("cors");
-const { spawn } = require("child_process");
-const path = require("path");
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'))); // <- importante!
 
-// Rota principal para download
-app.post("/api/download", (req, res) => {
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.post('/api/download', async (req, res) => {
   const { url, format } = req.body;
 
   if (!url || !format) {
-    return res.status(400).json({ error: "URL ou formato não fornecido." });
+    return res.status(400).json({ error: 'URL ou formato ausente.' });
   }
 
-  let ytDlpArgs = [];
+  const isAudio = format === 'audio';
+  const isVideo = format === 'video';
+  const isBoth = format === 'both';
 
-  switch (format) {
-    case "audio":
-      ytDlpArgs = ["-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", "-", url];
-      res.setHeader("Content-Disposition", `attachment; filename="audio.mp3"`);
-      res.setHeader("Content-Type", "audio/mpeg");
-      break;
+  const baseCmd = `yt-dlp -o - "${url}"`;
 
-    case "video":
-      ytDlpArgs = ["-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4", "-o", "-", url];
-      res.setHeader("Content-Disposition", `attachment; filename="video.mp4"`);
-      res.setHeader("Content-Type", "video/mp4");
-      break;
+  let formatOption = '';
+  if (isAudio) formatOption = '-f bestaudio';
+  else if (isVideo) formatOption = '-f bestvideo';
+  else formatOption = '-f bestvideo+bestaudio';
 
-    case "both":
-    default:
-      ytDlpArgs = ["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4", "-o", "-", url];
-      res.setHeader("Content-Disposition", `attachment; filename="video.mp4"`);
-      res.setHeader("Content-Type", "video/mp4");
-      break;
-  }
+  res.setHeader('Content-Disposition', 'attachment; filename="video.mp4"');
+  res.setHeader('Content-Type', 'video/mp4');
 
-  const process = spawn("yt-dlp", ytDlpArgs);
+  const finalCmd = `${baseCmd} ${formatOption}`;
+
+  const process = exec(finalCmd, { maxBuffer: 1024 * 1024 * 100 });
 
   process.stdout.pipe(res);
-  process.stderr.on("data", (data) => console.error(`[yt-dlp]: ${data}`));
-  process.on("close", (code) => {
-    if (code !== 0) {
-      console.error(`yt-dlp process exited with code ${code}`);
-      res.status(500).end();
-    }
+  process.stderr.on('data', (data) => {
+    console.error('yt-dlp error:', data.toString());
   });
 });
 
-// Rota de verificação simples (útil para o Render)
-app.get("/", (req, res) => {
-  res.send("Servidor está rodando 🚀");
-});
-
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
