@@ -8,12 +8,25 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // <- importante!
 
+// Serve arquivos estáticos da pasta public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Definindo o caminho absoluto do index.html para debug
+const indexPath = path.join(__dirname, 'public', 'index.html');
+console.log('Tentando servir arquivo:', indexPath);
+
+// Rota raiz serve o index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('Erro ao enviar index.html:', err);
+      res.status(500).send('Erro ao carregar página.');
+    }
+  });
 });
 
+// Rota para download via yt-dlp
 app.post('/api/download', async (req, res) => {
   const { url, format } = req.body;
 
